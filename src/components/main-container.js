@@ -3,18 +3,20 @@ import _ from 'lodash';
 import Card from './card';
 import axios from 'axios';
 
-
-
 export default class MainContainer extends Component {
-  constructor(){
+  constructor() {
     super();
+
     this.state = {
-      coins:[],
-    }
-    this.url = 'https://thingproxy.freeboard.io/fetch/https://api.coinone.co.kr/ticker?currency=all'
+      coins: [],
+    };
+
+    this.url =
+      'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd';
+
     this.headers = {
       'content-type': 'application/json',
-      'accept': 'application/json',
+      accept: 'application/json',
     };
 
     this.options = {
@@ -22,55 +24,66 @@ export default class MainContainer extends Component {
       timeout: 5000,
     };
   }
-  currencies = {};
 
-  getData(){
-    axios.get(this.url,this.options)
-    .then(result => {
-      
-      let data = result.data;
-      let coins = [];
-      Object.keys(data).map((k,i) => {
-        if(data[k].last){
-          coins.push(data[k]);
-        }
+  getData() {
+    axios
+      .get(this.url, this.options)
+      .then((result) => {
+
+        console.log(result.data);
+
+        // Convert CoinGecko response
+        // into old app compatible format
+        const coins = result.data.slice(0, 12).map((coin) => ({
+          currency: coin.symbol.toUpperCase(),
+          last: coin.current_price,
+          yesterday_last: coin.high_24h,
+          volume: coin.total_volume,
+        }));
+
+        this.setState({ coins });
+      })
+      .catch((error) => {
+        console.log('API ERROR:', error);
       });
-      this.setState({coins:coins});
-    });
   }
+
   timer() {
     this.getData();
   }
+
   componentDidMount() {
-    this.intervalId = setInterval(this.timer.bind(this), 2000);
+    this.intervalId = setInterval(this.timer.bind(this), 10000);
+
     this.getData();
   }
-  componentWillUnmount(){
+
+  componentWillUnmount() {
     clearInterval(this.intervalId);
   }
 
-  renderCoinCard(){
-
-    return _.map(this.state.coins, coin => {
-
-      return(
-        <Card key={coin.currency} coin={coin} />
-      )
+  renderCoinCard() {
+    return _.map(this.state.coins, (coin) => {
+      return <Card key={coin.currency} coin={coin} />;
     });
-
   }
+
   render() {
     return (
       <div className="container">
         <div className="row">
           <div className="col s12">
             <div className="section">
-              <h3 className="header">Cryptocurrency Monitor</h3>
+              <h3 className="header">
+                Cryptocurrency Monitor
+              </h3>
             </div>
           </div>
         </div>
+
         <div className="row">
-          {this.state.coins.length > 0 && this.renderCoinCard()}
+          {this.state.coins.length > 0 &&
+            this.renderCoinCard()}
         </div>
       </div>
     );
